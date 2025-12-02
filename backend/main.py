@@ -6,6 +6,7 @@ import uuid
 import pika
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from minio import Minio
 
 app = FastAPI(title="Wildlife Detection API")
@@ -122,3 +123,112 @@ def get_result(task_id: str):
         return result_data
     except Exception:
         return {"status": "processing", "message": "Result not ready yet or ID invalid"}
+
+
+@app.get("/images/{object_path:path}")
+def get_image(object_path: str):
+    """
+    Serve images from MinIO storage.
+
+    Args:
+        object_path: Path to the object in MinIO (e.g., 'annotated/task_id_annotated.jpg')
+
+    Returns:
+        StreamingResponse with the image data
+    """
+    try:
+        response = minio_client.get_object(BUCKET_NAME, object_path)
+
+        # Determine content type based on file extension
+        if object_path.lower().endswith(".jpg") or object_path.lower().endswith(
+            ".jpeg"
+        ):
+            content_type = "image/jpeg"
+        elif object_path.lower().endswith(".png"):
+            content_type = "image/png"
+        elif object_path.lower().endswith(".gif"):
+            content_type = "image/gif"
+        elif object_path.lower().endswith(".webp"):
+            content_type = "image/webp"
+        else:
+            content_type = "application/octet-stream"
+
+        # Read the data into memory to properly handle the response
+        image_data = response.read()
+        response.close()
+        response.release_conn()
+
+        return StreamingResponse(
+            io.BytesIO(image_data),
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Content-Disposition": f"inline; filename={object_path.split('/')[-1]}",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Image not found: {str(e)}")
+
+
+@app.get("/original/{task_id}")
+def get_original_image(task_id: str):
+    """
+    Serve the original uploaded image/video for a task.
+
+    Args:
+        task_id: The task ID
+
+    Returns:
+        StreamingResponse with the original file
+    """
+    try:
+        # First get the result to find the original object name
+        result_object_name = f"results/{task_id}.json"
+        response = minio_client.get_object(BUCKET_NAME, result_object_name)
+        result_data = json.loads(response.read())
+        response.close()
+        response.release_conn()
+
+        original_object = result_data.get("original_object")
+        if not original_object:
+            raise HTTPException(
+                status_code=404, detail="Original file reference not found"
+            )
+
+        # Get the original file
+        response = minio_client.get_object(BUCKET_NAME, original_object)
+        file_data = response.read()
+        response.close()
+        response.release_conn()
+
+        # Determine content type
+        if original_object.lower().endswith((".jpg", ".jpeg")):
+            content_type = "image/jpeg"
+        elif original_object.lower().endswith(".png"):
+            content_type = "image/png"
+        elif original_object.lower().endswith(".gif"):
+            content_type = "image/gif"
+        elif original_object.lower().endswith(".webp"):
+            content_type = "image/webp"
+        elif original_object.lower().endswith(".mp4"):
+            content_type = "video/mp4"
+        elif original_object.lower().endswith(".webm"):
+            content_type = "video/webm"
+        elif original_object.lower().endswith(".avi"):
+            content_type = "video/x-msvideo"
+        else:
+            content_type = "application/octet-stream"
+
+        return StreamingResponse(
+            io.BytesIO(file_data),
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=3600",
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=404, detail=f"Original file not found: {str(e)}"
+        )
