@@ -1,5 +1,5 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState } from 'react';
+import axios from 'axios';
 import {
   Upload,
   CheckCircle,
@@ -9,8 +9,8 @@ import {
   Video,
   Image as ImageIcon,
   Play,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -18,24 +18,24 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 
 function App() {
   const [file, setFile] = useState(null);
   const [taskId, setTaskId] = useState(null);
-  const [status, setStatus] = useState("idle"); // idle, uploading, processing, completed, error
+  const [status, setStatus] = useState('idle'); // idle, uploading, processing, completed, error
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("image");
+  const [activeTab, setActiveTab] = useState('image');
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      setStatus("idle");
+      setStatus('idle');
       setResult(null);
       setError(null);
     }
@@ -44,7 +44,7 @@ function App() {
   const handleTabChange = (value) => {
     setActiveTab(value);
     setFile(null);
-    setStatus("idle");
+    setStatus('idle');
     setResult(null);
     setError(null);
   };
@@ -52,27 +52,27 @@ function App() {
   const handleUpload = async () => {
     if (!file) return;
 
-    setStatus("uploading");
+    setStatus('uploading');
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/detect",
+        'http://localhost:8000/detect',
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            'Content-Type': 'multipart/form-data',
           },
         }
       );
       setTaskId(response.data.task_id);
-      setStatus("processing");
+      setStatus('processing');
       pollResult(response.data.task_id);
     } catch (err) {
       console.error(err);
-      setError("Upload failed. Please try again.");
-      setStatus("error");
+      setError('Upload failed. Please try again.');
+      setStatus('error');
     }
   };
 
@@ -80,20 +80,20 @@ function App() {
     const interval = setInterval(async () => {
       try {
         const response = await axios.get(`http://localhost:8000/results/${id}`);
-        if (response.data.status === "completed") {
+        if (response.data.status === 'completed') {
           setResult(response.data);
-          setStatus("completed");
+          setStatus('completed');
           clearInterval(interval);
         }
       } catch (err) {
-        console.log("Polling...");
+        console.log('Polling...');
       }
     }, 2000);
 
     // Stop polling after 60 seconds (longer for video)
     setTimeout(() => {
       clearInterval(interval);
-      if (status !== "completed") {
+      if (status !== 'completed') {
         // setStatus('error')
         // setError('Processing timed out.')
       }
@@ -177,7 +177,7 @@ function App() {
         </Tabs>
 
         {/* Results Section */}
-        {status === "completed" && result && (
+        {status === 'completed' && result && (
           <div className="mt-12 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Card>
               <CardHeader>
@@ -188,16 +188,16 @@ function App() {
                   <div>
                     <CardTitle>Analysis Complete</CardTitle>
                     <CardDescription>
-                      {result.type === "video"
-                        ? "Video processing finished successfully."
-                        : "Image analysis finished successfully."}
+                      {result.type === 'video'
+                        ? 'Video processing finished successfully.'
+                        : 'Image analysis finished successfully.'}
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <Separator />
               <CardContent className="pt-6">
-                {result.type === "video" ? (
+                {result.type === 'video' ? (
                   <VideoResults result={result} />
                 ) : (
                   <ImageResults result={result} />
@@ -207,12 +207,12 @@ function App() {
           </div>
         )}
 
-        {status === "error" && (
+        {status === 'error' && (
           <div className="mt-8 max-w-2xl mx-auto">
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 text-destructive p-4 flex items-center gap-3">
               <AlertCircle className="h-5 w-5" />
               <p className="font-medium">
-                {error || "Something went wrong. Please try again."}
+                {error || 'Something went wrong. Please try again.'}
               </p>
             </div>
           </div>
@@ -241,9 +241,9 @@ function UploadCard({ type, file, status, onFileChange, onUpload, accept }) {
                   and drop
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {type === "image"
-                    ? "SVG, PNG, JPG or GIF (MAX. 800x400px)"
-                    : "MP4, WEBM or OGG (MAX. 50MB)"}
+                  {type === 'image'
+                    ? 'SVG, PNG, JPG or GIF (MAX. 800x400px)'
+                    : 'MP4, WEBM or OGG (MAX. 50MB)'}
                 </p>
               </div>
               <input
@@ -260,7 +260,7 @@ function UploadCard({ type, file, status, onFileChange, onUpload, accept }) {
             <div className="flex items-center justify-between w-full p-4 border rounded-lg bg-card shadow-sm">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="bg-primary/10 p-2 rounded">
-                  {type === "image" ? (
+                  {type === 'image' ? (
                     <ImageIcon className="h-4 w-4 text-primary" />
                   ) : (
                     <Video className="h-4 w-4 text-primary" />
@@ -270,20 +270,20 @@ function UploadCard({ type, file, status, onFileChange, onUpload, accept }) {
               </div>
               <Button
                 onClick={onUpload}
-                disabled={status === "uploading" || status === "processing"}
+                disabled={status === 'uploading' || status === 'processing'}
               >
-                {status === "uploading" ? (
+                {status === 'uploading' ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Uploading...
                   </>
-                ) : status === "processing" ? (
+                ) : status === 'processing' ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
                   </>
                 ) : (
-                  "Analyze"
+                  'Analyze'
                 )}
               </Button>
             </div>
@@ -302,8 +302,8 @@ function ImageResults({ result }) {
           Detected Species
         </div>
         <div className="text-3xl font-bold text-primary">{result.class}</div>
-        <Badge variant={result.detected ? "default" : "secondary"}>
-          {result.detected ? "Wildlife Detected" : "No Wildlife"}
+        <Badge variant={result.detected ? 'default' : 'secondary'}>
+          {result.detected ? 'Wildlife Detected' : 'No Wildlife'}
         </Badge>
       </div>
 
@@ -355,7 +355,9 @@ function VideoResults({ result }) {
               <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary"
-                  style={{ width: `${detection.confidence * 100}%` }}
+                  style={{
+                    width: `${detection.confidence * 100}%`,
+                  }}
                 />
               </div>
               <span className="text-xs text-muted-foreground font-mono">

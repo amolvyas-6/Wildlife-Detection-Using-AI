@@ -1,11 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import io
+import json
+import os
+import uuid
+
+import pika
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from minio import Minio
-import pika
-import json
-import uuid
-import os
-import io
 
 app = FastAPI(title="Wildlife Detection API")
 
@@ -32,7 +33,7 @@ minio_client = Minio(
     MINIO_ENDPOINT,
     access_key=MINIO_ACCESS_KEY,
     secret_key=MINIO_SECRET_KEY,
-    secure=False
+    secure=False,
 )
 
 # Ensure bucket exists
@@ -42,15 +43,18 @@ try:
 except Exception as e:
     print(f"Error connecting to MinIO: {e}")
 
+
 def get_rabbitmq_channel():
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
     channel = connection.channel()
     channel.queue_declare(queue=QUEUE_NAME, durable=True)
     return connection, channel
 
+
 @app.get("/")
 def read_root():
     return {"message": "Wildlife Detection API is running"}
+
 
 @app.post("/detect")
 async def detect_wildlife(file: UploadFile = File(...)):
@@ -74,7 +78,7 @@ async def detect_wildlife(file: UploadFile = File(...)):
             object_name,
             file_stream,
             length=len(content),
-            content_type=content_type
+            content_type=content_type,
         )
 
         # Send task to RabbitMQ
@@ -83,25 +87,31 @@ async def detect_wildlife(file: UploadFile = File(...)):
             "task_id": task_id,
             "object_name": object_name,
             "original_filename": file.filename,
-            "file_type": file_type
+            "file_type": file_type,
         }
         channel.basic_publish(
-            exchange='',
+            exchange="",
             routing_key=QUEUE_NAME,
             body=json.dumps(message),
             properties=pika.BasicProperties(
                 delivery_mode=2,  # make message persistent
-            ))
+            ),
+        )
         connection.close()
 
-        return {"task_id": task_id, "status": "queued", "message": f"{file_type.capitalize()} uploaded and queued for processing"}
+        return {
+            "task_id": task_id,
+            "status": "queued",
+            "message": f"{file_type.capitalize()} uploaded and queued for processing",
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/results/{task_id}")
 def get_result(task_id: str):
-    # In a real app, we might check a database. 
+    # In a real app, we might check a database.
     # Here, we'll check if a result file exists in MinIO (simple pattern)
     result_object_name = f"results/{task_id}.json"
     try:
