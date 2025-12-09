@@ -27,7 +27,7 @@ The only requirement is **Docker** and **Docker Compose**.
 
     - **Website (Frontend):** [http://localhost](http://localhost)
     - **API Docs (Backend):** [http://localhost/api/docs](http://localhost/api/docs)
-    - **MinIO Console (Storage):** [http://localhost/minio/](http://localhost/minio/)
+    - **MinIO Console (Storage):** [http://localhost:9001](http://localhost:9001)
       - _Username:_ `minioadmin`
       - _Password:_ `minioadmin`
     - **RabbitMQ Dashboard (Queue):** [http://localhost/rabbitmq/](http://localhost/rabbitmq/)
@@ -115,10 +115,9 @@ Caddy acts as the main entry point and reverse proxy for all services:
 
 - `/` → Frontend (React app)
 - `/api/*` → Backend (FastAPI)
-- `/minio/*` → MinIO Console (Storage UI)
 - `/rabbitmq/*` → RabbitMQ Management (Queue UI)
 
-This means you only need to expose a single port (80/443) to access all services!
+MinIO Console is accessed directly on port 9001 (not through the reverse proxy) as it doesn't support subpath routing well.
 
 ---
 

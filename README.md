@@ -38,7 +38,7 @@ docker-compose up --build
 4. Access the application:
    - **Frontend (Website):** [http://localhost](http://localhost)
    - **Backend API Docs:** [http://localhost/api/docs](http://localhost/api/docs)
-   - **MinIO Console:** [http://localhost/minio/](http://localhost/minio/) (User: `minioadmin`, Pass: `minioadmin`)
+   - **MinIO Console:** [http://localhost:9001](http://localhost:9001) (User: `minioadmin`, Pass: `minioadmin`)
    - **RabbitMQ Management:** [http://localhost/rabbitmq/](http://localhost/rabbitmq/) (User: `guest`, Pass: `guest`)
 
 ## Tech Stack Details

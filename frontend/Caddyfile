@@ -1,26 +1,21 @@
-:80, :443 {
-    # Serve static frontend files
-    root * /usr/share/caddy
+:80 {
+	# Serve static frontend files
+	root * /usr/share/caddy
 
-    # API proxy to backend
-    handle /api/* {
-        uri strip_prefix /api
-        reverse_proxy backend:8000
-    }
+	# API proxy to backend
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy backend:8000
+	}
 
-    # MinIO Console proxy
-    handle_path /minio/* {
-        reverse_proxy minio:9001
-    }
+	# RabbitMQ Management UI proxy
+	handle_path /rabbitmq/* {
+		reverse_proxy rabbitmq:15672
+	}
 
-    # RabbitMQ Management UI proxy
-    handle_path /rabbitmq/* {
-        reverse_proxy rabbitmq:15672
-    }
-
-    # SPA fallback - serve index.html for all other routes
-    handle {
-        try_files {path} /index.html
-        file_server
-    }
+	# SPA fallback - serve index.html for all other routes
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }
