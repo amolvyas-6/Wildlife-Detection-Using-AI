@@ -19,18 +19,18 @@ The only requirement is **Docker** and **Docker Compose**.
 
 3.  **Wait for the build to complete.**
 
-    - Docker will automatically download all necessary environments (Python, Node.js, Nginx).
+    - Docker will automatically download all necessary environments (Python, Node.js, Caddy).
     - It will install all dependencies inside the containers.
     - It will start the Frontend, Backend, Worker, Database (MinIO), and Queue (RabbitMQ).
 
 4.  **Access the Application:**
 
-    - **Website (Frontend):** [http://localhost:3000](http://localhost:3000)
-    - **API Docs (Backend):** [http://localhost:8000/docs](http://localhost:8000/docs)
-    - **MinIO Console (Storage):** [http://localhost:9001](http://localhost:9001)
+    - **Website (Frontend):** [http://localhost](http://localhost)
+    - **API Docs (Backend):** [http://localhost/api/docs](http://localhost/api/docs)
+    - **MinIO Console (Storage):** [http://localhost/minio/](http://localhost/minio/)
       - _Username:_ `minioadmin`
       - _Password:_ `minioadmin`
-    - **RabbitMQ Dashboard (Queue):** [http://localhost:15672](http://localhost:15672)
+    - **RabbitMQ Dashboard (Queue):** [http://localhost/rabbitmq/](http://localhost/rabbitmq/)
       - _Username:_ `guest`
       - _Password:_ `guest`
 
@@ -62,7 +62,7 @@ This project uses a **Microservices Architecture**. Each component runs in its o
 
 | Service      | Tech Stack                       | Role                                                                                                                                 |
 | :----------- | :------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend** | React, Vite, Tailwind, shadcn/ui | The user interface. It handles file uploads and displays results (progress bars for images, timelines for videos). Served via Nginx. |
+| **Frontend** | React, Vite, Tailwind, shadcn/ui | The user interface. It handles file uploads and displays results (progress bars for images, timelines for videos). Served via Caddy. |
 | **Backend**  | Python, FastAPI                  | The API Gateway. It coordinates between the user, storage, and the queue.                                                            |
 | **Worker**   | Python                           | The "Brain". It performs the heavy AI computation in the background so the website stays fast.                                       |
 | **MinIO**    | Go (Binary)                      | Object Storage. Stores the actual image/video files and the result JSON files.                                                       |
@@ -73,6 +73,7 @@ This project uses a **Microservices Architecture**. Each component runs in its o
 - **Containerization**: Everything is packaged in Docker. It runs exactly the same on your laptop as it would on a massive server.
 - **Decoupling**: The Frontend doesn't know about the AI. The Backend doesn't do the heavy lifting. If 1000 users upload files, we can just add more **Worker** containers without changing the code.
 - **Scalability**: We use a message queue (RabbitMQ) to handle load spikes.
+- **Automatic HTTPS**: Caddy provides automatic HTTPS certificate management when deployed with a domain name.
 
 ---
 
@@ -102,8 +103,30 @@ When you upload files, they are stored in a **`data`** folder inside this projec
 
 We created a custom internal network called `wildlife-network`.
 
-- **Isolation**: This network is isolated from the outside world. Only ports we explicitly expose (like 3000, 8000) are accessible from your computer.
+- **Isolation**: This network is isolated from the outside world. Only ports we explicitly expose (like 80, 443) are accessible from your computer.
 - **Service Discovery**: Inside this network, containers call each other by their **service name**, not IP address.
   - The Backend talks to MinIO using the hostname `minio` (e.g., `http://minio:9000`).
   - The Worker talks to RabbitMQ using the hostname `rabbitmq`.
   - Docker's internal DNS handles resolving these names to the correct internal IP addresses automatically.
+
+### 3. Reverse Proxy with Caddy
+
+Caddy acts as the main entry point and reverse proxy for all services:
+
+- `/` → Frontend (React app)
+- `/api/*` → Backend (FastAPI)
+- `/minio/*` → MinIO Console (Storage UI)
+- `/rabbitmq/*` → RabbitMQ Management (Queue UI)
+
+This means you only need to expose a single port (80/443) to access all services!
+
+---
+
+## 🔒 Production Deployment with HTTPS
+
+To enable automatic HTTPS in production:
+
+1. Point your domain to your server's IP address
+2. Update the Caddyfile with your domain name (replace `:80` with `yourdomain.com`)
+3. Expose port 443 in docker-compose.yml
+4. Caddy will automatically obtain and renew SSL certificates from Let's Encrypt

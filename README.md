@@ -11,6 +11,7 @@ This project demonstrates a modern cloud-native application architecture using:
 - **Worker:** Python service for asynchronous AI processing.
 - **Message Queue:** RabbitMQ for decoupling the API and Worker.
 - **Storage:** MinIO (S3 compatible object storage) for storing images and results.
+- **Reverse Proxy:** Caddy for automatic HTTPS and routing.
 - **Deployment:** Docker & Docker Compose for containerization.
 
 ## Architecture Flow
@@ -35,19 +36,21 @@ docker-compose up --build
 ```
 
 4. Access the application:
-   - **Frontend (Website):** [http://localhost:3000](http://localhost:3000)
-   - **Backend API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **MinIO Console:** [http://localhost:9001](http://localhost:9001) (User: `minioadmin`, Pass: `minioadmin`)
-   - **RabbitMQ Management:** [http://localhost:15672](http://localhost:15672) (User: `guest`, Pass: `guest`)
+   - **Frontend (Website):** [http://localhost](http://localhost)
+   - **Backend API Docs:** [http://localhost/api/docs](http://localhost/api/docs)
+   - **MinIO Console:** [http://localhost/minio/](http://localhost/minio/) (User: `minioadmin`, Pass: `minioadmin`)
+   - **RabbitMQ Management:** [http://localhost/rabbitmq/](http://localhost/rabbitmq/) (User: `guest`, Pass: `guest`)
 
 ## Tech Stack Details
 
 - **Frontend:** React, Vite, Tailwind CSS, Lucide React, Axios.
 - **Backend:** FastAPI, Uvicorn, MinIO Client, Pika (RabbitMQ client).
 - **Worker:** Python, Pika, MinIO Client.
+- **Reverse Proxy:** Caddy (automatic HTTPS, reverse proxy).
 - **Infrastructure:** Docker, Docker Compose.
 
 ## Notes for Evaluation
 
 - The AI detection is currently simulated to ensure the project runs smoothly on all hardware without large model downloads. You can see the simulation logic in `worker/worker.py`.
 - The project is fully containerized and can be deployed to any cloud provider supporting Docker.
+- Caddy provides automatic HTTPS when deployed with a domain name - just update the Caddyfile with your domain.
