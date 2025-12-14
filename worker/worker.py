@@ -39,6 +39,61 @@ print(f"Loading YOLO model: {MODEL_PATH}")
 model = YOLO(MODEL_PATH)
 print("YOLO model loaded successfully!")
 
+# Wildlife animal classes from COCO dataset that YOLO can detect
+# These are the animal classes we want to filter for
+WILDLIFE_CLASSES = {
+    "bird",
+    "cat",
+    "dog",
+    "horse",
+    "sheep",
+    "cow",
+    "elephant",
+    "bear",
+    "zebra",
+    "giraffe",
+    # Additional animals that might be in extended models
+    "lion",
+    "tiger",
+    "deer",
+    "monkey",
+    "rabbit",
+    "squirrel",
+    "fox",
+    "wolf",
+    "leopard",
+    "cheetah",
+    "kangaroo",
+    "panda",
+    "koala",
+    "hippopotamus",
+    "rhinoceros",
+    "crocodile",
+    "alligator",
+    "snake",
+    "lizard",
+    "turtle",
+    "frog",
+    "fish",
+    "shark",
+    "whale",
+    "dolphin",
+    "seal",
+    "penguin",
+    "owl",
+    "eagle",
+    "hawk",
+    "parrot",
+    "flamingo",
+    "peacock",
+}
+
+
+def is_wildlife_animal(class_name):
+    """Check if the detected class is a wildlife animal."""
+    return class_name.lower() in WILDLIFE_CLASSES
+
+
 # Color palette for bounding boxes (BGR format for OpenCV)
 COLORS = [
     (255, 0, 0),  # Blue
@@ -189,6 +244,10 @@ def run_yolo_detection_image(image_data, task_id):
                 confidence = float(box.conf[0])
                 bbox = box.xyxy[0].tolist()  # [x1, y1, x2, y2]
 
+                # Only include wildlife animals
+                if not is_wildlife_animal(class_name):
+                    continue
+
                 detections.append(
                     {
                         "class": class_name,
@@ -205,11 +264,13 @@ def run_yolo_detection_image(image_data, task_id):
     # Sort by confidence
     detections.sort(key=lambda x: x["confidence"], reverse=True)
 
-    # Draw bounding boxes and save annotated image
-    annotated_image = draw_bounding_boxes(image, detections)
-    annotated_object_name = save_annotated_image_to_minio(
-        annotated_image, task_id, "annotated"
-    )
+    # Only draw bounding boxes and save annotated image if there are wildlife detections
+    annotated_object_name = None
+    if detections:
+        annotated_image = draw_bounding_boxes(image, detections)
+        annotated_object_name = save_annotated_image_to_minio(
+            annotated_image, task_id, "annotated"
+        )
 
     return {
         "detected": len(detections) > 0,
@@ -287,6 +348,10 @@ def run_yolo_detection_video(video_data, task_id):
                             class_name = model.names[cls_id]
                             confidence = float(box.conf[0])
                             bbox = box.xyxy[0].tolist()
+
+                            # Only include wildlife animals
+                            if not is_wildlife_animal(class_name):
+                                continue
 
                             frame_detections.append(
                                 {
