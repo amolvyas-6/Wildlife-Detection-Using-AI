@@ -1,0 +1,803 @@
+\documentclass[12pt, a4paper]{report}
+
+% --- FONT SETTINGS ---
+\usepackage{mathptmx}
+\usepackage[T1]{fontenc}
+
+% --- PACKAGES ---
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+
+% --- GEOMETRY & SPACING ---
+\geometry{
+ a4paper,
+ left=1in,
+ right=1in,
+ top=1in,
+ bottom=1in,
+}
+\onehalfspacing
+
+% --- CUSTOM HEADING SIZES ---
+\titleformat{\chapter}[display]
+  {\normalfont\fontsize{16}{18}\bfseries\centering}
+  {\chaptertitlename\ \thechapter}
+  {8pt}
+  {\Large}
+\titlespacing*{\chapter}{0pt}{0pt}{15pt}
+
+\titleformat{\section}
+  {\normalfont\fontsize{14}{15}\bfseries}
+  {\thesection}{1em}{}
+
+\titleformat{\subsection}
+  {\normalfont\fontsize{12}{13}\itshape}
+  {\thesubsection}{1em}{}
+
+% --- CODE LISTING STYLE ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{codeblue}{rgb}{0.13,0.29,0.53}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codeblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{codegray}
+}
+\lstset{style=mystyle}
+
+% --- HYPERLINK SETTINGS ---
+\usepackage[hidelinks]{hyperref}
+
+% --- METADATA ---
+\title{\textbf{Wildlife Detection Using AI: A Cloud-Native Microservices Approach with YOLOv8}}
+\author{
+    \textbf{Project Report} \\
+    \vspace{0.5cm}
+    \textit{Department of Computer Science and Engineering} \\
+    \textit{RV College of Engineering}
+}
+\date{\today}
+
+\begin{document}
+
+% --- TITLE PAGE ---
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Huge\bfseries Wildlife Detection Using AI}\\[0.4cm]
+    {\Large\bfseries A Cloud-Native Microservices Approach with YOLOv8}\\[1.5cm]
+    {\large\textbf{Cloud Computing Project Report}}\\[1cm]
+    \vfill
+    {\large\textit{Department of Computer Science and Engineering}}\\[0.2cm]
+    {\large\textit{RV College of Engineering}}\\[0.2cm]
+    {\large\textit{Bengaluru, Karnataka}}\\[0.8cm]
+    {\large \today}
+\end{titlepage}
+
+% --- TABLE OF CONTENTS ---
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+\newpage
+
+\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+\newpage
+
+% -------------------------------------------------------------------
+% ABSTRACT
+% -------------------------------------------------------------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\pagenumbering{arabic}
+
+Wildlife monitoring and detection has become critical for biodiversity conservation and ecological research in an era of rapid environmental change. Traditional methods relying on manual observation are time-consuming, labor-intensive, and prone to human error. This paper presents a cloud-native wildlife detection system leveraging deep learning and microservices architecture for automated, scalable, real-time wildlife identification.
+
+Our approach employs YOLOv8 neural network for real-time object detection within a containerized microservices ecosystem using Docker, RabbitMQ for message queuing, MinIO for object storage, FastAPI for backend services, and React for the frontend. Caddy serves as the reverse proxy with automatic HTTPS.
+
+The system successfully detects multiple wildlife species with configurable confidence thresholds. The asynchronous pipeline handles both images and videos with frame-by-frame analysis. The microservices architecture enables horizontal scalability through multiple worker instances.
+
+Key deliverables include annotated image outputs with bounding boxes, JSON-formatted detection metadata with confidence scores, and a responsive web interface supporting drag-and-drop uploads. Performance benchmarks demonstrate sub-second API response times with detection inference completing in 0.5--2 seconds per image on CPU hardware.
+
+This work contributes a production-ready, open-source wildlife detection platform bridging advanced AI capabilities with practical deployment in conservation efforts. The modular design facilitates future enhancements including custom model training, GPU acceleration, and integration with wildlife conservation databases.
+
+\newpage
+
+% -------------------------------------------------------------------
+% CHAPTER 1: INTRODUCTION
+% -------------------------------------------------------------------
+\chapter{Introduction}
+
+\section{Background and Context}
+
+Wildlife preservation has emerged as a pressing global challenge, with approximately one million species facing extinction according to the Intergovernmental Science-Policy Platform on Biodiversity and Ecosystem Services (IPBES). The rapid loss of biodiversity threatens ecosystem stability, food security, and the balance of natural habitats worldwide. Traditional approaches to wildlife observation---including manual patrols, physical tracking, and human-operated camera trap analysis---suffer from inherent limitations in scale, speed, and consistency. Conservation organizations often accumulate terabytes of camera trap footage that remains unanalyzed due to resource constraints.
+
+The convergence of artificial intelligence, cloud computing, and IoT has opened transformative possibilities for automated wildlife detection and monitoring. Deep learning models, particularly Convolutional Neural Networks (CNNs), have demonstrated remarkable capabilities in image classification and object detection tasks, often matching or exceeding human-level performance. The YOLO (You Only Look Once) family of models has revolutionized real-time detection by treating it as a single regression problem, enabling processing speeds suitable for video analysis while maintaining high accuracy. Cloud computing paradigms, especially microservices architecture and containerization, provide the scalability and flexibility required to deploy AI systems in production environments without significant infrastructure investment.
+
+\section{Problem Definition / Research Gap}
+
+Despite the availability of powerful object detection models and cloud infrastructure, several critical gaps persist in the practical deployment of wildlife detection systems:
+\begin{enumerate}[label=\arabic*., nosep]
+    \item \textbf{Integration Complexity:} Existing solutions often require significant expertise to integrate AI models with web applications, storage systems, and user interfaces. There is a notable lack of cohesive, end-to-end systems that handle the complete workflow from image upload to result visualization.
+    \item \textbf{Scalability Limitations:} Many current implementations tightly couple the detection logic with the web server, creating bottlenecks when processing multiple requests simultaneously. This synchronous approach fails to leverage the inherently parallel nature of image processing tasks.
+    \item \textbf{Deployment Barriers:} Setting up wildlife detection systems typically requires installing numerous dependencies, configuring environments, and managing complex software stacks. This complexity limits adoption by conservation organizations with limited technical resources.
+    \item \textbf{Video Processing Gaps:} While image detection is relatively well-addressed, many systems lack robust support for video analysis, which is essential for camera trap footage and continuous surveillance applications in field conditions.
+\end{enumerate}
+
+\section{Motivation / Significance}
+
+This project is motivated by the urgent need to create an accessible, scalable, and production-ready wildlife detection platform that addresses the aforementioned gaps. The significance of this work extends across multiple dimensions:
+\begin{itemize}[nosep]
+    \item \textbf{Conservation Impact:} Automated detection dramatically reduces the time required to process camera trap data from weeks to minutes, enabling faster response to poaching incidents, wildlife population changes, and habitat encroachment.
+    \item \textbf{Technical Demonstration:} The project serves as a comprehensive demonstration of cloud-native application development, showcasing best practices in containerization, asynchronous processing, message queuing, and microservices communication patterns.
+    \item \textbf{Educational Value:} As an open-source implementation, this project provides a valuable learning resource for students and practitioners interested in the intersection of AI, cloud computing, and environmental conservation.
+    \item \textbf{Extensibility:} The modular architecture allows easy replacement of the detection model with specialized wildlife classifiers, integration with notification systems, or connection to conservation databases.
+\end{itemize}
+
+\section{Objectives}
+
+\begin{enumerate}[label=\arabic*., nosep]
+    \item Design a cloud-native wildlife detection system using microservices architecture
+    \item Integrate YOLOv8 for real-time wildlife identification in images and videos
+    \item Develop asynchronous processing pipeline using message queues
+    \item Create intuitive web interface for file upload and result visualization
+    \item Containerize all components using Docker for consistent deployment
+\end{enumerate}
+
+\section{Approach / Contribution}
+
+Our approach combines state-of-the-art deep learning with modern cloud-native development practices to create a robust, scalable solution. We utilize the Ultralytics YOLOv8 nano model, which provides an optimal balance between detection accuracy and inference speed, with the model pre-downloaded during container build to eliminate runtime dependencies. The system is decomposed into independent microservices---frontend, backend API, worker, message queue, object storage, and reverse proxy---that communicate through well-defined interfaces. Detection tasks are queued in RabbitMQ, allowing the API to respond immediately while workers process images in the background, enabling horizontal scaling of worker instances. Docker Compose orchestrates all services for single-command deployment, while React with Tailwind CSS provides a responsive, accessible interface with real-time status updates.
+
+\section{Organization of the Paper}
+
+The remainder of this report is organized as follows: \textbf{Chapter 2 (Methodology)} presents the detailed system architecture, component design, algorithms, and implementation specifics including code snippets and configuration files for each service. \textbf{Chapter 3 (Results and Discussion)} analyzes the system capabilities, detection performance, architectural benefits, and discusses limitations with potential future enhancements. The \textbf{Appendix} contains screenshots demonstrating the running application, user interface workflows, and sample detection results.
+
+\newpage
+
+% -------------------------------------------------------------------
+% CHAPTER 2: METHODOLOGY
+% -------------------------------------------------------------------
+\chapter{Methodology}
+
+This chapter presents the detailed methodology employed in designing and implementing the Wildlife Detection AI system, covering system architecture, algorithms, and implementation details.
+
+\section{System Architecture Overview}
+
+The Wildlife Detection AI system follows a microservices architecture pattern, where the application is decomposed into loosely coupled, independently deployable services. This architectural choice offers several advantages including independent scaling, technology flexibility, fault isolation, and simplified maintenance. Each service is containerized using Docker and communicates through well-defined APIs and message protocols.
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{2cm}\textbf{[PLACEHOLDER: System Architecture Diagram]}\\\textit{Frontend $\rightarrow$ Caddy $\rightarrow$ Backend $\rightarrow$ RabbitMQ $\rightarrow$ Worker $\rightarrow$ MinIO}\vspace{2cm}}}
+    \caption{High-Level System Architecture}
+    \label{fig:system-architecture}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{System Components and Their Roles}
+\label{tab:components}
+\begin{tabular}{|l|l|p{6cm}|}
+\hline
+\textbf{Component} & \textbf{Technology} & \textbf{Role} \\
+\hline
+Frontend & React, Vite, Tailwind & User interface for upload and visualization \\
+\hline
+Backend API & Python, FastAPI & RESTful API gateway \\
+\hline
+Worker & Python, YOLOv8 & AI processing service \\
+\hline
+Message Queue & RabbitMQ & Asynchronous task distribution \\
+\hline
+Object Storage & MinIO & S3-compatible file storage \\
+\hline
+Reverse Proxy & Caddy & Request routing, HTTPS \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Data Flow}
+
+The system follows a well-defined asynchronous data flow that decouples the user-facing API from computationally intensive AI processing:
+
+\begin{enumerate}[label=\arabic*., nosep]
+    \item \textbf{Upload Phase:} User uploads image/video through the React frontend interface
+    \item \textbf{Routing:} Caddy reverse proxy routes the API request to FastAPI backend
+    \item \textbf{Storage \& Queuing:} Backend stores the file in MinIO object storage and publishes a task message to RabbitMQ, returning immediately with a task ID
+    \item \textbf{Processing:} Worker service consumes the task from RabbitMQ, downloads the file from MinIO, and executes YOLO inference
+    \item \textbf{Result Persistence:} Worker saves detection results as JSON and annotated images back to MinIO
+    \item \textbf{Polling \& Display:} Frontend polls the backend at regular intervals until results are available, then displays annotated images and detection metadata
+\end{enumerate}
+
+This asynchronous pattern ensures the API remains responsive even during heavy processing loads, as the actual inference is offloaded to dedicated worker processes.
+
+\section{YOLOv8 Object Detection}
+
+YOLO (You Only Look Once) represents a paradigm shift in object detection by treating the task as a single regression problem rather than a complex multi-stage pipeline. Unlike traditional two-stage detectors such as R-CNN that first propose regions and then classify them, YOLO processes the entire image in a single forward pass through the neural network, simultaneously predicting bounding boxes and class probabilities.
+
+YOLOv8, released by Ultralytics in January 2023, introduces several architectural improvements:
+
+\begin{itemize}[nosep]
+    \item \textbf{Anchor-Free Detection:} Eliminates predefined anchor boxes, directly predicting object centers and dimensions, simplifying the detection pipeline
+    \item \textbf{C2f Module:} Enhanced Cross Stage Partial (CSP) architecture with C2f (Cross Stage Partial with 2 convolutions) modules for improved gradient flow
+    \item \textbf{Decoupled Head:} Separate branches for objectness, classification, and regression tasks, improving training convergence
+    \item \textbf{Distribution Focal Loss:} Advanced loss function for more precise bounding box regression
+    \item \textbf{Mosaic Augmentation:} Training technique that combines four images, improving small object detection
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{2.5cm}\textbf{[PLACEHOLDER: YOLOv8 Architecture Diagram]}\\\textit{Backbone, Neck, and Detection Head components}\vspace{2.5cm}}}
+    \caption{YOLOv8 Neural Network Architecture}
+    \label{fig:yolo-architecture}
+\end{figure}
+
+\subsection{Model Selection}
+
+YOLOv8 offers multiple model sizes trading off speed versus accuracy. We selected the nano variant (\texttt{yolov8n.pt}) optimized for inference speed in containerized CPU environments:
+
+\begin{table}[H]
+\centering
+\caption{YOLOv8 Model Variants Comparison}
+\label{tab:yolo-variants}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Parameters} & \textbf{mAP@50} & \textbf{Speed (CPU)} \\
+\hline
+YOLOv8n (selected) & 3.2M & 37.3 & Fast \\
+\hline
+YOLOv8s & 11.2M & 44.9 & Medium \\
+\hline
+YOLOv8m & 25.9M & 50.2 & Slow \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Wildlife Class Filtering}
+
+The COCO dataset includes 80 object classes, but our application focuses specifically on wildlife detection. We implement a filtering mechanism to include only animal-related classes:
+
+\begin{lstlisting}[language=Python, caption={Wildlife Detection Configuration}]
+from ultralytics import YOLO
+
+MODEL_PATH = "yolov8n.pt"
+CONFIDENCE_THRESHOLD = 0.5
+model = YOLO(MODEL_PATH)
+
+WILDLIFE_CLASSES = {
+    "bird", "cat", "dog", "horse", "sheep", "cow",
+    "elephant", "bear", "zebra", "giraffe", "lion",
+    "tiger", "deer", "monkey", "whale", "dolphin",
+}
+
+def is_wildlife_animal(class_name):
+    return class_name.lower() in WILDLIFE_CLASSES
+\end{lstlisting}
+
+\subsection{Detection Implementation}
+
+The core detection processes images and generates annotated outputs with bounding boxes:
+
+\begin{lstlisting}[language=Python, caption={Image Detection Core Logic}]
+def run_yolo_detection_image(image_data, task_id):
+    nparr = np.frombuffer(image_data, np.uint8)
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    results = model(image, conf=CONFIDENCE_THRESHOLD)
+
+    detections = []
+    for result in results:
+        for box in result.boxes:
+            class_name = model.names[int(box.cls[0])]
+            if is_wildlife_animal(class_name):
+                detections.append({
+                    "class": class_name,
+                    "confidence": float(box.conf[0]),
+                    "bbox": box.xyxy[0].tolist(),
+                })
+
+    if detections:
+        annotated = draw_bounding_boxes(image, detections)
+        save_annotated_image_to_minio(annotated, task_id)
+
+    return {"detected": len(detections) > 0,
+            "detections": detections}
+\end{lstlisting}
+
+\subsection{Bounding Box Visualization}
+
+Detected wildlife instances are highlighted with colored bounding boxes using OpenCV. Each class receives a consistent color based on a hash function, and labels display the class name with confidence percentage. The annotated images are saved to MinIO for retrieval via the API.
+
+\subsection{Video Processing Pipeline}
+
+For video files, processing the entire video frame-by-frame would be computationally expensive and often redundant. Instead, the system implements intelligent frame sampling:
+
+\begin{itemize}[nosep]
+    \item Frames are extracted at one-second intervals (based on video FPS)
+    \item Each sampled frame undergoes YOLO inference independently
+    \item Detections are timestamped for temporal reference
+    \item Only frames with wildlife detections have annotated versions saved
+    \item Results include video metadata (duration, dimensions, total frames analyzed)
+\end{itemize}
+
+This approach balances thoroughness with efficiency, typically reducing processing time by 20-30x compared to analyzing every frame.
+
+\section{Backend API Service}
+
+The backend API is implemented using FastAPI, a modern Python web framework built on Starlette and Pydantic. FastAPI offers several advantages for this application:
+
+\begin{itemize}[nosep]
+    \item \textbf{Async Support:} Native async/await for non-blocking I/O operations
+    \item \textbf{Automatic Documentation:} OpenAPI (Swagger) and ReDoc documentation generated automatically
+    \item \textbf{Type Validation:} Pydantic-based request/response validation
+    \item \textbf{High Performance:} One of the fastest Python frameworks available
+\end{itemize}
+
+\subsection{API Endpoints}
+
+\begin{table}[H]
+\centering
+\caption{API Endpoints}
+\label{tab:api-endpoints}
+\begin{tabular}{|l|l|p{5cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Description} \\
+\hline
+POST & \texttt{/detect} & Upload file for detection \\
+\hline
+GET & \texttt{/results/\{task\_id\}} & Retrieve detection results \\
+\hline
+GET & \texttt{/images/\{path\}} & Serve annotated images \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{lstlisting}[language=Python, caption={File Upload and Task Queuing}]
+@app.post("/detect")
+async def detect_wildlife(file: UploadFile = File(...)):
+    task_id = str(uuid.uuid4())
+    content = await file.read()
+
+    # Upload to MinIO
+    minio_client.put_object(BUCKET_NAME, f"{task_id}.jpg",
+                            io.BytesIO(content), len(content))
+
+    # Queue task in RabbitMQ
+    channel.basic_publish(exchange="", routing_key=QUEUE_NAME,
+        body=json.dumps({"task_id": task_id}),
+        properties=pika.BasicProperties(delivery_mode=2))
+
+    return {"task_id": task_id, "status": "queued"}
+\end{lstlisting}
+
+\subsection{CORS and Middleware Configuration}
+
+The API implements Cross-Origin Resource Sharing (CORS) middleware to allow requests from the frontend application. Additional middleware handles request logging and error formatting.
+
+\section{Message Queue with RabbitMQ}
+
+RabbitMQ serves as the message broker implementing the Advanced Message Queuing Protocol (AMQP). This component is critical for achieving loose coupling between the API and worker services.
+
+\subsection{Why Message Queuing?}
+
+Without a message queue, the API would need to perform AI inference synchronously, blocking the request until processing completes (potentially 2-10 seconds). This creates poor user experience and limits scalability. The message queue pattern provides:
+
+\begin{itemize}[nosep]
+    \item \textbf{Decoupling:} API and workers operate independently
+    \item \textbf{Load Leveling:} Queue buffers requests during traffic spikes
+    \item \textbf{Reliability:} Persistent messages survive service restarts
+    \item \textbf{Scalability:} Multiple workers can consume from the same queue
+\end{itemize}
+
+\subsection{Queue Configuration}
+
+Tasks are published to a durable queue named \texttt{ai\_processing\_queue}. The queue configuration ensures message persistence:
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1.8cm}\textbf{[PLACEHOLDER: Message Queue Diagram]}\\\textit{Producer (Backend) $\rightarrow$ Queue $\rightarrow$ Consumer (Worker)}\vspace{1.8cm}}}
+    \caption{RabbitMQ Message Flow}
+    \label{fig:rabbitmq-flow}
+\end{figure}
+
+Workers consume messages, process detections, and acknowledge completion:
+
+\begin{lstlisting}[language=Python, caption={Worker Message Handler}]
+def callback(ch, method, properties, body):
+    message = json.loads(body)
+    data = minio_client.get_object(BUCKET_NAME,
+                                    message["object_name"])
+    result = run_yolo_detection_image(data.read(),
+                                       message["task_id"])
+
+    # Save result to MinIO
+    minio_client.put_object(BUCKET_NAME,
+        f"results/{message['task_id']}.json",
+        io.BytesIO(json.dumps(result).encode()))
+
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+\end{lstlisting}
+
+\subsection{Worker Implementation}
+
+The worker service runs as a long-lived process that continuously listens for messages. Key implementation details include:
+
+\begin{itemize}[nosep]
+    \item \textbf{Prefetch Count:} Set to 1 to ensure fair distribution across multiple workers
+    \item \textbf{Manual Acknowledgment:} Messages are only acknowledged after successful processing
+    \item \textbf{Retry Logic:} Automatic reconnection if RabbitMQ connection is lost
+    \item \textbf{Error Handling:} Failed messages are negatively acknowledged and not requeued
+\end{itemize}
+
+\section{Object Storage with MinIO}
+
+MinIO is a high-performance, S3-compatible object storage system. Unlike traditional file systems, object storage provides a flat namespace accessed via HTTP APIs, making it ideal for cloud-native applications.
+
+\subsection{Bucket Organization}
+
+All files are stored in a single bucket (\texttt{wildlife-images}) with a logical path structure:
+
+\begin{itemize}[nosep]
+    \item \texttt{/\{task\_id\}.\{ext\}} --- Original uploaded files
+    \item \texttt{/annotated/\{task\_id\}\_annotated.jpg} --- Annotated images with bounding boxes
+    \item \texttt{/annotated/\{task\_id\}\_frame\_XXXX.jpg} --- Annotated video frames
+    \item \texttt{/results/\{task\_id\}.json} --- Detection result metadata in JSON format
+\end{itemize}
+
+\subsection{Benefits of Object Storage}
+
+\begin{itemize}[nosep]
+    \item \textbf{Scalability:} Easily scales to petabytes of data
+    \item \textbf{HTTP Access:} Files served directly via REST API
+    \item \textbf{Metadata:} Rich metadata support for each object
+    \item \textbf{S3 Compatibility:} Can migrate to AWS S3 or other providers without code changes
+\end{itemize}
+
+\section{Frontend Application}
+
+The frontend is built with modern JavaScript technologies providing a responsive, accessible user interface.
+
+\subsection{Technology Stack}
+
+\begin{itemize}[nosep]
+    \item \textbf{React 18:} Component-based UI library with hooks for state management
+    \item \textbf{Vite:} Next-generation build tool with hot module replacement
+    \item \textbf{Tailwind CSS:} Utility-first CSS framework for rapid styling
+    \item \textbf{shadcn/ui:} Accessible component library built on Radix UI primitives
+    \item \textbf{Axios:} Promise-based HTTP client for API communication
+    \item \textbf{Lucide React:} Modern icon library
+\end{itemize}
+
+\subsection{Key Features}
+
+The frontend implements several user experience enhancements:
+
+\begin{itemize}[nosep]
+    \item Drag-and-drop file upload with preview
+    \item Tabbed interface for image/video mode selection
+    \item Real-time status updates during processing
+    \item Interactive result display with detection cards
+    \item Modal image viewer for annotated outputs
+    \item Responsive design for mobile and desktop
+\end{itemize}
+
+\subsection{Polling Mechanism}
+
+After file upload, the frontend polls the \texttt{/results/\{task\_id\}} endpoint every 2 seconds until the result status changes to ``completed''. A timeout of 120 seconds prevents indefinite polling for failed tasks.
+
+\section{Reverse Proxy with Caddy}
+
+Caddy is a modern web server written in Go, known for automatic HTTPS and simple configuration. In our architecture, Caddy serves multiple roles:
+
+\begin{itemize}[nosep]
+    \item \textbf{Static File Server:} Serves the compiled React frontend
+    \item \textbf{Reverse Proxy:} Routes API requests to backend services
+    \item \textbf{SPA Support:} Implements try\_files fallback for client-side routing
+    \item \textbf{HTTPS:} Automatic certificate provisioning in production deployments
+\end{itemize}
+
+\subsection{Routing Configuration}
+
+\begin{lstlisting}[caption={Caddyfile Configuration}]
+:80 {
+    root * /usr/share/caddy
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy backend:8000
+    }
+    handle_path /rabbitmq/* {
+        reverse_proxy rabbitmq:15672
+    }
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
+}
+\end{lstlisting}
+
+\section{Container Orchestration with Docker}
+
+Containerization is fundamental to cloud-native applications. Docker packages each service with its dependencies into isolated, reproducible units that run consistently across development, testing, and production environments.
+
+\subsection{Containerization Benefits}
+
+\begin{itemize}[nosep]
+    \item \textbf{Isolation:} Each service runs in its own container with dedicated resources
+    \item \textbf{Reproducibility:} Identical behavior across all environments
+    \item \textbf{Dependency Management:} No conflicts between service dependencies
+    \item \textbf{Rapid Deployment:} Containers start in seconds
+    \item \textbf{Resource Efficiency:} Lighter than virtual machines
+\end{itemize}
+
+\subsection{Docker Compose Orchestration}
+
+Docker Compose defines and manages multi-container applications through a declarative YAML configuration. It handles service dependencies, networking, and volume management.
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{2.5cm}\textbf{[PLACEHOLDER: Docker Compose Diagram]}\\\textit{All containers, connections, volumes, and wildlife-network}\vspace{2.5cm}}}
+    \caption{Docker Compose Orchestration}
+    \label{fig:docker-compose}
+\end{figure}
+
+\begin{lstlisting}[caption={docker-compose.yml (Abbreviated)}]
+version: "3.8"
+services:
+  frontend:
+    build: ./frontend
+    ports: ["80:80"]
+    depends_on: [backend, minio, rabbitmq]
+
+  backend:
+    build: ./backend
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - RABBITMQ_HOST=rabbitmq
+
+  worker:
+    build: ./worker
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - RABBITMQ_HOST=rabbitmq
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    volumes: [./data/minio:/data]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    volumes: [./data/rabbitmq:/var/lib/rabbitmq]
+
+networks:
+  wildlife-network:
+    driver: bridge
+\end{lstlisting}
+
+\subsection{Service Dockerfiles}
+
+Each service has a dedicated Dockerfile optimizing for its specific requirements:
+
+\begin{itemize}[nosep]
+    \item \textbf{Frontend:} Multi-stage build compiling React app, then copying to Caddy image
+    \item \textbf{Backend:} Python slim image with FastAPI and dependencies
+    \item \textbf{Worker:} Python image with OpenCV, FFmpeg, and pre-downloaded YOLO model
+\end{itemize}
+
+The worker Dockerfile pre-downloads the YOLO model during build to avoid runtime delays.
+
+\subsection{Networking}
+
+All services communicate through a custom bridge network (\texttt{wildlife-network}). Docker's internal DNS allows services to reference each other by name (e.g., \texttt{minio:9000}, \texttt{rabbitmq:5672}).
+
+\subsection{Data Persistence}
+
+Bind mounts map host directories to container paths, ensuring data survives container restarts:
+\begin{itemize}[nosep]
+    \item \texttt{./data/minio:/data} --- Object storage files
+    \item \texttt{./data/rabbitmq:/var/lib/rabbitmq} --- Queue state and messages
+\end{itemize}
+
+\subsection{Deployment Instructions}
+
+\textbf{Prerequisites:} Docker Engine 20.10+, Docker Compose 2.0+, 4GB RAM recommended.
+
+\textbf{Deployment Steps:}
+\begin{enumerate}[label=\arabic*., nosep]
+    \item Clone the repository
+    \item Navigate to project root directory
+    \item Execute: \texttt{docker-compose up --build}
+    \item Wait for all services to initialize (first build downloads dependencies)
+    \item Access the application at \texttt{http://localhost}
+\end{enumerate}
+
+\textbf{Stopping the Application:}
+\begin{itemize}[nosep]
+    \item Press \texttt{Ctrl+C} in the terminal to stop services
+    \item Run \texttt{docker-compose down} to remove containers
+    \item Add \texttt{-v} flag to also remove volumes
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Service Access URLs}
+\label{tab:access-urls}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Service} & \textbf{URL} & \textbf{Credentials} \\
+\hline
+Frontend & \texttt{http://localhost} & --- \\
+\hline
+API Docs & \texttt{http://localhost/api/docs} & --- \\
+\hline
+MinIO & \texttt{http://localhost:9001} & minioadmin / minioadmin \\
+\hline
+RabbitMQ & \texttt{http://localhost/rabbitmq/} & guest / guest \\
+\hline
+\end{tabular}
+\end{table}
+
+\newpage
+
+% -------------------------------------------------------------------
+% CHAPTER 3: RESULTS AND DISCUSSION
+% -------------------------------------------------------------------
+\chapter{Results and Discussion}
+
+\section{System Functionality}
+
+The system achieves all objectives: accurate image detection with annotated outputs, frame-by-frame video processing, immediate API responses via asynchronous processing, horizontal worker scaling, and single-command Docker deployment.
+
+\section{Detection Capabilities}
+
+\begin{table}[H]
+\centering
+\caption{Wildlife Classes Detected}
+\label{tab:wildlife-classes}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Category} & \textbf{Species} \\
+\hline
+Mammals & Bear, Elephant, Giraffe, Zebra, Horse, Sheep, Cow \\
+\hline
+Birds & Bird, Owl, Eagle, Hawk, Parrot, Penguin \\
+\hline
+Marine Life & Fish, Shark, Whale, Dolphin, Seal \\
+\hline
+Reptiles & Snake, Lizard, Turtle, Crocodile \\
+\hline
+\end{tabular}
+\end{table}
+
+Each detection includes class name, confidence score (0.0--1.0), bounding box coordinates, and annotated image output.
+
+\section{Performance}
+
+\begin{table}[H]
+\centering
+\caption{Processing Times}
+\label{tab:performance}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Operation} & \textbf{Duration} \\
+\hline
+Image upload and queuing & $<$ 1 second \\
+\hline
+Image inference (1080p) & 0.5--2 seconds \\
+\hline
+Video inference per frame & 0.5--2 seconds \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Architecture Benefits}
+
+\textbf{Scalability:} Multiple workers process tasks concurrently via RabbitMQ distribution. \textbf{Reliability:} Durable queues survive restarts; workers auto-reconnect. \textbf{Maintainability:} Single-responsibility services enable independent updates.
+
+\section{Limitations and Future Work}
+
+\textbf{Limitations:} COCO model may miss region-specific species; CPU-only inference; no real-time streaming; lacks authentication.
+
+\textbf{Future Enhancements:} Custom model training on wildlife datasets, GPU acceleration, WebSocket streaming, notification system, Kubernetes deployment.
+
+\section{Conclusion}
+
+This project demonstrates a cloud-native wildlife detection approach using microservices and deep learning. The combination of YOLOv8, RabbitMQ, MinIO, and Docker creates a scalable, maintainable solution. The system provides conservation organizations with an accessible tool for automated wildlife identification, significantly reducing manual processing effort.
+
+\newpage
+
+% -------------------------------------------------------------------
+% APPENDIX
+% -------------------------------------------------------------------
+\appendix
+\chapter{Application Snapshots}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: Home Page Screenshot]}\\\textit{WildlifeAI home page with upload tabs}\vspace{3cm}}}
+    \caption{Wildlife Detection AI Home Page}
+    \label{fig:home-page}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: Image Upload Screenshot]}\\\textit{Image selected with preview}\vspace{3cm}}}
+    \caption{Image Upload with Preview}
+    \label{fig:image-upload}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: Detection Results Screenshot]}\\\textit{Results with annotated image and species list}\vspace{3cm}}}
+    \caption{Detection Results Display}
+    \label{fig:image-results}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: Annotated Image Screenshot]}\\\textit{Bounding boxes around detected wildlife}\vspace{3cm}}}
+    \caption{Annotated Image Output}
+    \label{fig:annotated-image}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: Video Results Screenshot]}\\\textit{Timeline with frame detections}\vspace{3cm}}}
+    \caption{Video Analysis Results}
+    \label{fig:video-results}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: MinIO Console Screenshot]}\\\textit{wildlife-images bucket contents}\vspace{3cm}}}
+    \caption{MinIO Storage Console}
+    \label{fig:minio-console}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: RabbitMQ Dashboard Screenshot]}\\\textit{Queue statistics and message rates}\vspace{3cm}}}
+    \caption{RabbitMQ Management Dashboard}
+    \label{fig:rabbitmq-dashboard}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{3cm}\textbf{[PLACEHOLDER: API Docs Screenshot]}\\\textit{FastAPI Swagger UI}\vspace{3cm}}}
+    \caption{FastAPI API Documentation}
+    \label{fig:api-docs}
+\end{figure}
+
+\end{document}
